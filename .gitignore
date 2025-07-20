@@ -1,0 +1,6 @@
+cache/*
+files/*
+sdsl/*
+tests/*
+!tests/*.cpp
+!tests/*.R
