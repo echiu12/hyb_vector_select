@@ -1,7 +1,10 @@
 # Prerequisites
 - make
-- CMake
-- Rscript with packages ggplot2, RColorBrewer, grid, and cowplot
+- cmake (to install SDSL)
+- Rscript (with packages ggplot2, RColorBrewer, grid, and cowplot)
+- wget (to get text files)
+- gunzip (to get text files)
+- g++
 
 # Instructions
 To run tests and benchmarks, run:

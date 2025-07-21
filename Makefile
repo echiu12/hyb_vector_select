@@ -6,8 +6,7 @@ DIR_TESTS := tests
 override CXX := g++
 override CXXFLAGS := -Wall -static -msse4.2 -std=c++11
 INCLUDE_FLAGS := \
-	-I$(DIR_SDSL)/include \
-	-I$(DIR_R_INDEX)/internal
+	-I$(DIR_SDSL)/include
 LDFLAGS := \
 	-L$(DIR_SDSL)/lib
 LDLIBS := \
@@ -28,10 +27,6 @@ BIN_NAMES := \
 	bench_plcp \
 	bench_bwt_select
 BIN_RELEASE   := $(foreach item,$(BIN_NAMES),$(DIR_TESTS)/$(item))
-
-BIN_TEST_SELECT_X          := $(filter $(DIR_TESTS)/test_select%,$(BIN))
-BIN_BENCH_PLCP_X           := $(filter $(DIR_TESTS)/bench_plcp%,$(BIN))
-BIN_BENCH_BWT_SELECT       := $(filter $(DIR_TESTS)/bench_bwt_select%,$(BIN))
 
 # All
 .PHONY: all
