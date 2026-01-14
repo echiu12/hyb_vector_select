@@ -1063,8 +1063,7 @@ class select_support_hyb
         {
             structure_tree_node* child = structure_tree::add_child(v, name, util::class_name(*this));
             size_type written_bytes = 0;
-            written_bytes += sdsl::write_member(m_v, out, child, "m_v");
-            written_bytes += m_sblock_id_lookup.serialize(out, child, "m_sblock_id_lookup");
+            written_bytes += m_sblock_id_lookup.serialize(out, child, "sblock_id_lookup");
             structure_tree::add_size(child, written_bytes);
             return written_bytes;
         }
