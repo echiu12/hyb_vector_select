@@ -1,100 +1,204 @@
-DIR_BITVECTOR := bitvector
-DIR_FILES := files
-DIR_SDSL := sdsl
-DIR_TESTS := tests
+backup_dir := backup
+build_dir := build
+bitvector_dir := bitvector
+external_dir := external
+rsrc_dir := files
+test_dir := tests
 
-override CXX := g++
-override CXXFLAGS := -Wall -static -msse4.2 -std=c++11
-INCLUDE_FLAGS := \
-	-I$(DIR_SDSL)/include
-LDFLAGS := \
-	-L$(DIR_SDSL)/lib
-LDLIBS := \
-	-lsdsl \
-	-ldivsufsort \
-	-ldivsufsort64
+CXX := g++
+CXXFLAGS := -Wall -static -std=c++20 -funroll-loops -O3 -march=native
+# CXXFLAGS := -Wall -static -std=c++11 -funroll-loops -O3 -march=native
+CPPFLAGS := -DNDEBUG
 
-ADJUSTMENTS_SDSL := \
-	$(DIR_BITVECTOR)/hyb_vector.hpp
-CORPUS_NREP := dna/dna.200MB protein/proteins.200MB nlang/english.200MB code/sources.200MB xml/dblp.xml.200MB
-CORPUS_REP := para cere influenza world_leaders kernel
+# make CPPFLAGS="-DPASTA -Ibuild/pasta/include -Iexternal/pasta/include" LDFLAGS="-Lbuild/pasta/lib" LDLIBS="-ltlx" bui
 
-CORPUS_LIST := $(DIR_FILES)/list
-CORPUS_REP_LIST := $(DIR_FILES)/list_repcorpus
+# FILES
+bitvector_files := $(wildcard $(bitvector_dir)/**)
+library_files := $(wildcard $(build_dir)/include/**)
 
-BIN_NAMES := \
-	test_select \
-	bench_plcp \
-	bench_bwt_select
-BIN_RELEASE   := $(foreach item,$(BIN_NAMES),$(DIR_TESTS)/$(item))
+#######
+# All #
+#######
 
-# All
 .PHONY: all
-all: $(BIN_RELEASE)
+all: \
+	$(build_dir)/test_serialize \
+	$(build_dir)/test_select \
+	$(build_dir)/bench_plcp \
+	$(build_dir)/bench_bwt_select
 
-# Libraries
-$(DIR_SDSL): $(ADJUSTMENTS_SDSL)
-	if [ ! -d $@ ]; then \
-		rm -rf $@ $@_src ; \
-		git clone --depth 1 --branch v2.1.1 https://github.com/simongog/sdsl-lite.git $@_src ; \
-		cp $^ ./$@_src/include/sdsl ; \
-		> ./$@_src/build/clean.sh ; \
-		./$@_src/install.sh ./$@ ; \
-		rm -rf $@_src ; \
-	else \
-		cp $^ $@/include/sdsl ; \
-	fi
-	touch $@
+################
+# BENCH_HEADER #
+################
 
-# Files
-$(CORPUS_LIST) $(CORPUS_REP_LIST):
-	mkdir -p $(DIR_FILES)
-	>$@
+$(build_dir)/bench_header: override CPPFLAGS += -I$(bitvector_dir)
+$(build_dir)/bench_header: $(build_dir)/%: $(test_dir)/%.cpp $(bitvector_files)
+	mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+
+################
+# BENCH_FOOTER #
+################
+
+$(build_dir)/bench_footer: override CPPFLAGS += -I$(bitvector_dir)
+$(build_dir)/bench_footer: $(build_dir)/%: $(test_dir)/%.cpp $(bitvector_files)
+	mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+
+#########
+# SETUP #
+#########
+
+.PHONY: setup
+setup: sdsl zombit_sdsl pasta la_vector download
+
+########
+# SDSL #
+########
+
+sdsl_dir := $(external_dir)/sdsl-lite
+
+.PHONY: sdsl
+sdsl:
+	mkdir -p $(build_dir)
+	git submodule update --init $(sdsl_dir)
+	./$(sdsl_dir)/install.sh $(build_dir)
+
+######################
+# ZOMBIT VECTOR SDSL #
+######################
+
+zombit_dir := $(external_dir)/zombit-vector
+zombit_sdsl_dir := $(zombit_dir)/external/sdsl-lite
+
+.PHONY: zombit_sdsl
+zombit_sdsl:
+	mkdir -p $(build_dir)/zombit-vector
+	git submodule update --init --recursive $(zombit_dir)
+	# Use the original install script, so cmake is called directly. (fixes error on this device)
+	cp $(external_dir)/sdsl-lite/install.sh $(zombit_sdsl_dir)/install.sh
+	./$(zombit_sdsl_dir)/install.sh $(build_dir)/zombit-vector
+
+#########
+# PASTA #
+#########
+
+pasta_dir := $(external_dir)/pasta
+pasta_utils_dir := $(external_dir)/pasta_utils
+tlx_dir := $(external_dir)/tlx
+
+.PHONY: pasta
+pasta:
+	git submodule update --init --recursive $(pasta_dir)
+	git submodule update --init --recursive $(pasta_utils_dir)
+	git submodule update --init --recursive $(tlx_dir)
+
+#############
+# LA_VECTOR #
+#############
+
+la_vector_dir := $(external_dir)/la_vector
+
+.PHONY: la_vector
+la_vector:
+	git submodule update --init --recursive $(la_vector_dir)
+
+############
+# DOWNLOAD #
+############
+
+corpus_nrep := dna/dna.200MB protein/proteins.200MB nlang/english.200MB code/sources.200MB xml/dblp.xml.200MB
+corpus_rep := para cere influenza world_leaders kernel
+
+corpus_list := $(rsrc_dir)/list
 
 .PHONY: download
 download:
-	mkdir -p $(DIR_FILES)
-	>$(CORPUS_LIST)
-	>$(CORPUS_REP_LIST)
+	mkdir -p $(rsrc_dir)
+	>$(corpus_list)
 
-	for t in $(CORPUS_NREP) ; do \
+	for t in $(corpus_nrep) ; do \
 		f=$$(echo $$t | cut -d "/" -f 2); \
-		if ! [ -f $(DIR_FILES)/$$f ] ; then \
-			wget -P $(DIR_FILES) https://pizzachili.dcc.uchile.cl/texts/$$t.gz ; \
-			gunzip $(DIR_FILES)/$$f.gz; \
+		if ! [ -f $(rsrc_dir)/$$f ] ; then \
+			wget -P $(rsrc_dir) https://pizzachili.dcc.uchile.cl/texts/$$t.gz ; \
+			gunzip $(rsrc_dir)/$$f.gz; \
 		fi ; \
-		echo $$f >> $(CORPUS_LIST) ; \
+		echo $$f >> $(corpus_list) ; \
 	done
 
-	for f in $(CORPUS_REP) ; do \
-		if ! [ -f $(DIR_FILES)/$$f ] ; then \
-			wget -P $(DIR_FILES) https://pizzachili.dcc.uchile.cl/repcorpus/real/$$f.gz ; \
-			gunzip $(DIR_FILES)/$$f.gz; \
+	for f in $(corpus_rep) ; do \
+		if ! [ -f $(rsrc_dir)/$$f ] ; then \
+			wget -P $(rsrc_dir) https://pizzachili.dcc.uchile.cl/repcorpus/real/$$f.gz ; \
+			gunzip $(rsrc_dir)/$$f.gz; \
 		fi ; \
-		echo $$f >> $(CORPUS_LIST) ; \
-		echo $$f >> $(CORPUS_REP_LIST) ; \
+		echo $$f >> $(corpus_list) ; \
 	done
 
-# Binaries
-$(BIN_RELEASE): override CXXFLAGS += -funroll-loops -O3
-$(BIN_RELEASE): override CPPFLAGS += -DNDEBUG
+###############
+# TEST_SELECT #
+###############
 
-tests/test_select: tests/test_select.cpp sdsl
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDE_FLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
+$(build_dir)/test_select: override CPPFLAGS += -I$(build_dir)/include
+$(build_dir)/test_select: override LDFLAGS += -L$(build_dir)/lib
+$(build_dir)/test_select: override LDLIBS += -lsdsl -ldivsufsort -ldivsufsort64
+$(build_dir)/test_select: $(build_dir)/%: $(test_dir)/%.cpp $(bitvector_files) $(library_files)
+	mkdir -p $(dir $@)
+	cp $(bitvector_files) $(build_dir)/include/sdsl/
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
-tests/bench_plcp: tests/bench_lcp.cpp sdsl $(CORPUS_LIST)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDE_FLAGS) -DUSE_PLCP $< -o $@ $(LDFLAGS) $(LDLIBS)
+##################
+# TEST_SERIALIZE #
+##################
 
-tests/bench_bwt_select: tests/bench_bwt_select.cpp sdsl $(CORPUS_LIST)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDE_FLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
+$(build_dir)/test_serialize: override CPPFLAGS += -I$(build_dir)/include
+$(build_dir)/test_serialize: override LDFLAGS += -L$(build_dir)/lib
+$(build_dir)/test_serialize: override LDLIBS += -lsdsl -ldivsufsort -ldivsufsort64
+$(build_dir)/test_serialize: $(build_dir)/%: $(test_dir)/%.cpp $(bitvector_files) $(library_files)
+	mkdir -p $(dir $@)
+	cp $(bitvector_files) $(build_dir)/include/sdsl/
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
+
+##############
+# BENCH_PLCP #
+##############
+
+$(build_dir)/bench_plcp: override CPPFLAGS += -I$(build_dir)/include -I$(external_dir) 
+# $(build_dir)/bench_plcp: override CPPFLAGS += -I$(build_dir)/zombit-vector/include -I$(external_dir)/zombit-vector/include -I$(build_dir)/include -I$(external_dir) 
+# $(build_dir)/bench_plcp: override CPPFLAGS += -I$(external_dir)/pasta/include -I$(external_dir)/pasta_utils/include -I$(external_dir)/tlx -I$(build_dir)/include -I$(external_dir) 
+$(build_dir)/bench_plcp: override LDFLAGS += -L$(build_dir)/lib
+$(build_dir)/bench_plcp: override LDLIBS += -lsdsl -ldivsufsort -ldivsufsort64
+$(build_dir)/bench_plcp: $(build_dir)/%: $(test_dir)/%.cpp $(bitvector_files) $(library_files)
+	mkdir -p $(dir $@)
+	cp $(bitvector_files) $(build_dir)/include/sdsl/
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
+
+####################
+# BENCH_BWT_SELECT #
+####################
+
+$(build_dir)/bench_bwt_select: override CPPFLAGS += -I$(build_dir)/include
+# $(build_dir)/bench_bwt_select: override CPPFLAGS += -I$(build_dir)/zombit-vector/include -I$(external_dir)/zombit-vector/include -I$(build_dir)/include -I$(external_dir) 
+# $(build_dir)/bench_bwt_select: override CPPFLAGS += -I$(external_dir)/pasta/include -I$(build_dir)/include -I$(external_dir) 
+$(build_dir)/bench_bwt_select: override LDFLAGS += -L$(build_dir)/lib
+$(build_dir)/bench_bwt_select: override LDLIBS += -lsdsl -ldivsufsort -ldivsufsort64
+$(build_dir)/bench_bwt_select: $(build_dir)/%: $(test_dir)/%.cpp $(bitvector_files) $(library_files)
+	mkdir -p $(dir $@)
+	cp $(bitvector_files) $(build_dir)/include/sdsl/
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
+
+#########
+# CLEAN #
+#########
 
 .PHONY: clean
 clean:
-	rm -f $(BIN_RELEASE) $(DIR_TESTS)/*.o *.sdsl
+	if [ -d $(build_dir) ]; then find $(build_dir) -maxdepth 1 -type f -delete; fi
 
-.PHONY: clean_files
-clean_files:
-	rm -rf $(DIR_FILES)
+###########
+# NUCLEAR #
+###########
 
-.PHONY: clean_all
-clean_all: clean_output clean_files
+.PHONY: nuclear
+nuclear:
+	rm -rf $(build_dir)
+

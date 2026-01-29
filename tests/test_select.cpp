@@ -1,11 +1,37 @@
 #include <cstdio>
+#include <cstdint>
 #include <cstdlib>
-#include <unistd.h>
 #include <cstring>
-#include <algorithm>
+#include <iostream>
+#include <random>
+#include <unistd.h>
 
 #include <sdsl/bit_vectors.hpp>
 #include <sdsl/hyb_vector.hpp>
+
+#ifdef USE_OZ
+#include <oz_vector.hpp>
+#endif
+
+#ifdef USE_NAIVE_HYB
+#include "wrapper_naive_hyb.hpp"
+#endif
+
+#ifdef USE_ZOMBIT
+#include "wrapper_zombit.hpp"
+#endif
+
+#ifdef USE_PASTA
+#include "wrapper_pasta.hpp"
+#endif
+
+#ifdef USE_LA_VECTOR
+#include "wrapper_la_vector.hpp"
+#endif
+
+#ifndef INDEX_TYPE
+#define INDEX_TYPE sdsl::hyb_vector<16>
+#endif
 
 #ifdef SEED
 std::uint64_t seed = SEED;
@@ -116,13 +142,14 @@ int main() {
 
     for (uint64_t length = 1; length <= max_length; length *= 2) {
       for (uint64_t density = 1; density <= max_density; density *= 2) {
-        test_random<sdsl::hyb_vector<16>>(length, 1, density, n_strings, n_queries);
-        test_random<sdsl::hyb_vector<16>>(length, 0, density, n_strings, n_queries);
+        test_random<INDEX_TYPE>(length, 1, density, n_strings, n_queries);
+        test_random<INDEX_TYPE>(length, 0, density, n_strings, n_queries);
       }
     }
 
   }
 
+#ifdef TEST_LARGE_FILES
   // Long vectors
   {
     const uint64_t length = (1ULL << 31) + (1ULL << 10);
@@ -130,9 +157,10 @@ int main() {
     const uint64_t n_queries = 500;
     const uint64_t n_strings = 1;
     for (uint64_t density = 1; density <= max_density; density *= 32) {
-      test_random<sdsl::hyb_vector<16>>(length, 1, density, n_strings, n_queries);
-      test_random<sdsl::hyb_vector<16>>(length, 0, density, n_strings, n_queries);
+      test_random<INDEX_TYPE>(length, 1, density, n_strings, n_queries);
+      test_random<INDEX_TYPE>(length, 0, density, n_strings, n_queries);
     }
   }
+#endif
 }
 
