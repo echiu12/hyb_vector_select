@@ -1,6 +1,4 @@
+build/*
 cache/*
 files/*
-sdsl/*
-tests/*
-!tests/*.cpp
-!tests/*.R
+experiments/**/*.pdf
