@@ -7,10 +7,7 @@ test_dir := tests
 
 CXX := g++
 CXXFLAGS := -Wall -static -std=c++20 -funroll-loops -O3 -march=native
-# CXXFLAGS := -Wall -static -std=c++11 -funroll-loops -O3 -march=native
 CPPFLAGS := -DNDEBUG
-
-# make CPPFLAGS="-DPASTA -Ibuild/pasta/include -Iexternal/pasta/include" LDFLAGS="-Lbuild/pasta/lib" LDLIBS="-ltlx" bui
 
 # FILES
 bitvector_files := $(wildcard $(bitvector_dir)/**)
@@ -61,7 +58,7 @@ sdsl_dir := $(external_dir)/sdsl-lite
 .PHONY: sdsl
 sdsl:
 	mkdir -p $(build_dir)
-	git submodule update --init $(sdsl_dir)
+	-git submodule update --init $(sdsl_dir)
 	./$(sdsl_dir)/install.sh $(build_dir)
 
 ######################
@@ -74,7 +71,7 @@ zombit_sdsl_dir := $(zombit_dir)/external/sdsl-lite
 .PHONY: zombit_sdsl
 zombit_sdsl:
 	mkdir -p $(build_dir)/zombit-vector
-	git submodule update --init --recursive $(zombit_dir)
+	-git submodule update --init --recursive $(zombit_dir)
 	# Use the original install script, so cmake is called directly. (fixes error on this device)
 	cp $(external_dir)/sdsl-lite/install.sh $(zombit_sdsl_dir)/install.sh
 	./$(zombit_sdsl_dir)/install.sh $(build_dir)/zombit-vector
@@ -89,9 +86,9 @@ tlx_dir := $(external_dir)/tlx
 
 .PHONY: pasta
 pasta:
-	git submodule update --init --recursive $(pasta_dir)
-	git submodule update --init --recursive $(pasta_utils_dir)
-	git submodule update --init --recursive $(tlx_dir)
+	-git submodule update --init --recursive $(pasta_dir)
+	-git submodule update --init --recursive $(pasta_utils_dir)
+	-git submodule update --init --recursive $(tlx_dir)
 
 #############
 # LA_VECTOR #
@@ -101,7 +98,7 @@ la_vector_dir := $(external_dir)/la_vector
 
 .PHONY: la_vector
 la_vector:
-	git submodule update --init --recursive $(la_vector_dir)
+	-git submodule update --init --recursive $(la_vector_dir)
 
 ############
 # DOWNLOAD #
