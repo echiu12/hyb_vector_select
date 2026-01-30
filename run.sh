@@ -22,6 +22,9 @@ experiment_out_bwt_select=${output_dir}/experiment_bwt_select.out
 rm -f ${experiment_out_plcp}
 rm -f ${experiment_out_bwt_select}
 
+# Initialize submodules and files.
+make setup
+
 # Apply fixes.
 cp alternatives/external/zombit-vector/include/oz_vector__00000000_000000.hpp external/zombit-vector/include/oz_vector.hpp
 cp alternatives/external/zombit-vector/include/partitioned_zombit_vector_sparse__00000000_000000.hpp external/zombit-vector/include/partitioned_zombit_vector_sparse.hpp
