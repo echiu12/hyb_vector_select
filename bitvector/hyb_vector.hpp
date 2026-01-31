@@ -837,16 +837,17 @@ class select_support_hyb
     private:
         const bit_vector_type* m_v;
 
-        // Given i / (k * 2^12) where k = 8, returns the sblock_id 
-        int_vector<64> m_sblock_id_lookup;
         // b count between each sample 
         size_type m_sblock_sampling_interval;
+        // Given i / (k * 2^12) where k = 8, returns the sblock_id 
+        int_vector<64> m_sblock_id_lookup;
 
     public:
         //! Standard constructor
         explicit select_support_hyb(const bit_vector_type* v = nullptr)
         {
             set_vector(v);
+            initialize_lookup();
         }
 
         //! Answers select queries
@@ -1036,7 +1037,6 @@ class select_support_hyb
         void set_vector(const bit_vector_type* v = nullptr)
         {
             m_v = v;
-            initialize_lookup();
         }
 
         //! Assignment operator
@@ -1044,17 +1044,24 @@ class select_support_hyb
         {
             if (this != &rs) {
                 set_vector(rs.m_v);
+                initialize_lookup();
             }
             return *this;
         }
 
         //! Swap method
-        void swap(select_support_hyb&) {}
+        void swap(select_support_hyb& other) {
+            if (this != &other) {
+                std::swap(m_sblock_sampling_interval, other.m_sblock_sampling_interval);
+                m_sblock_id_lookup.swap(other.m_sblock_id_lookup);
+            }
+        }
 
         //! Load the data structure from a stream and set the supported vector
         void load(std::istream& in, const bit_vector_type* v = nullptr)
         {
-            m_v = v;
+            set_vector(v);
+            read_member(m_sblock_sampling_interval, in);
             m_sblock_id_lookup.load(in);
         }
 
@@ -1063,6 +1070,7 @@ class select_support_hyb
         {
             structure_tree_node* child = structure_tree::add_child(v, name, util::class_name(*this));
             size_type written_bytes = 0;
+            written_bytes += write_member(m_sblock_sampling_interval, out, child, "sblock_sampling_interval");
             written_bytes += m_sblock_id_lookup.serialize(out, child, "sblock_id_lookup");
             structure_tree::add_size(child, written_bytes);
             return written_bytes;
